@@ -47,6 +47,20 @@ tools = [
         }
     },
     {
+        "name": "process_pdf_from_path",
+        "description": "Process an existing PDF file from a given file path and store its content in the vector database.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "filepath": {
+                    "type": "string",
+                    "description": "The absolute file path of the PDF to process."
+                }
+            },
+            "required": ["filepath"]
+        }
+    },
+    {
         "name": "search_pdf",
         "description": "Search relevant text from stored PDFs",
         "parameters": {
@@ -157,6 +171,26 @@ async def upload_pdf(file: UploadFile = File(...)):
     store_pdf_in_vector_db(file_path)
 
     return {"message": f"{file.filename} saved successfully!", "file_path": file_path}
+
+
+@app.post("/process_pdf/")
+async def process_pdf(filepath: str):
+    """Process a PDF from an existing file path and store its embeddings."""
+    if not filepath.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
+
+    # Ensure the file exists
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="File not found.")
+
+    try:
+        store_pdf_in_vector_db(file_path)
+
+        return {"message": f"{filepath} processed successfully!"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing PDF: {str(e)}")
+
 
 @app.get("/search/")
 def search_pdf_api(query: str):
