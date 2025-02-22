@@ -34,6 +34,33 @@ chroma_client = chromadb.PersistentClient(path="./chroma_db")
 collection = chroma_client.get_or_create_collection(name="gpt_completions")
 
 
+tools = [
+    {
+        "name": "upload_pdf",
+        "description": "Upload a PDF and store its content in a vector database",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "file_path": {"type": "string", "description": "Path to the PDF file"}
+            },
+            "required": ["file_path"]
+        }
+    },
+    {
+        "name": "search_pdf",
+        "description": "Search relevant text from stored PDFs",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Search query"}
+            },
+            "required": ["query"]
+        }
+    }
+]
+
+
+
 def extract_text_from_pdf(pdf_path):
     """Extract text from a PDF file"""
     with open(pdf_path, "rb") as file:
@@ -85,6 +112,7 @@ def generate_gpt_completion(prompt: str):
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}],
+        tools=tools,
     )
     return response.choices[0].message.content
 
