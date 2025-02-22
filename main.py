@@ -7,10 +7,19 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from datetime import datetime
 from fastapi import FastAPI, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
 app = FastAPI()
+# ✅ Add CORS Middleware to allow Chrome Extensions
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins (change to your extension ID for security)
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods (POST, GET, OPTIONS, etc.)
+    allow_headers=["*"],  # Allow all headers
+)
 
 UPLOAD_DIR = os.getenv("UPLOAD_DIR")
 
@@ -47,7 +56,7 @@ def generate_embedding(text: str):
     """Convert text into an embedding vector."""
     response = client.embeddings.create(
         model="text-embedding-3-large",
-        inputs=[text]
+        input=text
     )
     return response["embeddings"][0]
 
