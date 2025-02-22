@@ -1,10 +1,13 @@
 import chromadb
 import os
 import shutil
+import PyPDF2
+import tiktoken
 from openai import OpenAI
 from dotenv import load_dotenv
 from datetime import datetime
 from fastapi import FastAPI, UploadFile, File
+
 
 app = FastAPI()
 load_dotenv()
@@ -16,13 +19,23 @@ chroma_client = chromadb.PersistentClient(path="./chroma_db")
 collection = chroma_client.get_or_create_collection(name="gpt_completions")
 
 
-def generate_gpt_completion(prompt: str):
-    """Generate a GPT completion for a given prompt."""
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return response.choices[0].message.content
+def extract_text_from_pdf(pdf_path):
+    """Extract text from a PDF file"""
+    with open(pdf_path, "rb") as file:
+        reader = PyPDF2.PdfReader(file)
+        text = "\n".join([page.extract_text() for page in reader.pages if page.extract_text()])
+    return text
+
+
+def chunk_text(text, chunk_size=500):
+    """Split text into smaller chunks of `chunk_size` tokens"""
+    tokenizer = tiktoken.get_encoding("cl100k_base")
+    tokens = tokenizer.encode(text)
+
+    chunks = [tokens[i: i + chunk_size] for i in range(0, len(tokens), chunk_size)]
+    
+    decoded_chunks = [tokenizer.decode(chunk) for chunk in chunks]
+    return decoded_chunks
 
 
 def generate_embedding(text: str):
@@ -34,18 +47,43 @@ def generate_embedding(text: str):
     return response["embeddings"][0]
 
 
-def store_completion_in_vector_db(prompt: str):
-    """Generate a GPT completion, embed it, and store in ChromaDB."""
-    completion = generate_gpt_completion(prompt)
-    embedding = generate_embedding(completion)
+def store_pdf_in_vector_db(pdf_path):
+    """Extract text from PDF, chunk it, generate embeddings, and store in ChromaDB"""
+    text = extract_text_from_pdf(pdf_path)
+    chunks = chunk_text(text)
+
+    for i, chunk in enumerate(chunks):
+        embedding = generate_embedding(chunk)
+
+        # Store in ChromaDB
+        collection.add(
+            ids=[f"{pdf_path}-chunk-{i}"],
+            embeddings=[embedding],
+            metadatas=[{"pdf_name": pdf_path, "text": chunk}]
+        )
     
-    # Store in ChromaDB
-    collection.add(
-        ids=[f"completion-{datetime.utcnow().isoformat()}"],
-        embeddings=[embedding],
-        metadatas=[{"prompt": prompt, "completion": completion}]
+    print(f"Stored {len(chunks)} chunks from {pdf_path} in the vector database.")
+
+def generate_gpt_completion(prompt: str):
+    """Generate a GPT completion for a given prompt."""
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}],
     )
-    print(f"Stored GPT completion for: {prompt}")
+    return response.choices[0].message.content
+
+
+
+def search_pdf(query):
+    """Find the most relevant chunks based on a search query"""
+    query_embedding = generate_embedding(query)
+
+    results = collection.query(
+        query_embeddings=[query_embedding],
+        n_results=3
+    )
+    
+    return results
 
 
 def search_similar_responses(query: str):
