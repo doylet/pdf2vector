@@ -8,10 +8,13 @@ from dotenv import load_dotenv
 from datetime import datetime
 from fastapi import FastAPI, UploadFile, File
 
+load_dotenv()
 
 app = FastAPI()
-load_dotenv()
+
 UPLOAD_DIR = os.getenv("UPLOAD_DIR")
+
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),  # This is the default and can be omitted
@@ -105,7 +108,7 @@ def __test__generate_gpt_completion():
 
 @app.post("/upload_pdf/")
 async def upload_pdf(file: UploadFile = File(...)):
-    file_path = f"{UPLOAD_DIR}{file.filename}"
+    file_path = os.path.join(UPLOAD_DIR, file.filename)
 
     # Save PDF locally
     with open(file_path, "wb") as buffer:
@@ -114,7 +117,7 @@ async def upload_pdf(file: UploadFile = File(...)):
     # Process and store in vector database
     store_pdf_in_vector_db(file_path)
 
-    return {"message": f"{file.filename} processed and stored."}
+    return {"message": f"{file.filename} saved successfully!", "file_path": file_path}
 
 @app.get("/search/")
 def search_pdf_api(query: str):
