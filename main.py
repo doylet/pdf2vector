@@ -8,10 +8,6 @@ from fastapi import FastAPI, UploadFile, File
 
 app = FastAPI()
 load_dotenv()
-
-# Set up the OpenAI API key
-# OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),  # This is the default and can be omitted
 )
@@ -85,7 +81,6 @@ async def upload_pdf(file: UploadFile = File(...)):
 def search_pdf_api(query: str):
     results = search_pdf(query)
     return results
-
 
 
 if __name__ == '__main__':
