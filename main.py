@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 load_dotenv()
 
 app = FastAPI()
+
 # ✅ Add CORS Middleware to allow Chrome Extensions
 app.add_middleware(
     CORSMiddleware,
@@ -52,13 +53,13 @@ def chunk_text(text, chunk_size=500):
     return decoded_chunks
 
 
-def generate_embedding(text: str):
+def generate_embedding(text: str) -> list:
     """Convert text into an embedding vector."""
     response = client.embeddings.create(
-        model="text-embedding-3-large",
-        input=text
+        input=text,
+        model="text-embedding-3-large"
     )
-    return response["embeddings"][0]
+    return response.data[0].embedding
 
 
 def store_pdf_in_vector_db(pdf_path):
@@ -77,6 +78,7 @@ def store_pdf_in_vector_db(pdf_path):
         )
     
     print(f"Stored {len(chunks)} chunks from {pdf_path} in the vector database.")
+
 
 def generate_gpt_completion(prompt: str):
     """Generate a GPT completion for a given prompt."""
