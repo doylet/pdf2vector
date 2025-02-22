@@ -119,7 +119,3 @@ async def upload_pdf(file: UploadFile = File(...)):
 def search_pdf_api(query: str):
     results = search_pdf(query)
     return results
-
-
-if __name__ == '__main__':
-    # __test__generate_gpt_completion()
