@@ -11,6 +11,8 @@ from fastapi import FastAPI, UploadFile, File
 
 app = FastAPI()
 load_dotenv()
+UPLOAD_DIR = os.getenv("UPLOAD_DIR")
+
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),  # This is the default and can be omitted
 )
@@ -71,7 +73,6 @@ def generate_gpt_completion(prompt: str):
         messages=[{"role": "user", "content": prompt}],
     )
     return response.choices[0].message.content
-
 
 
 def search_pdf(query):
